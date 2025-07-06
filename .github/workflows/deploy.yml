@@ -65,6 +65,8 @@ jobs:
     - name: Create deployment package
       run: |
         cd Sample_Agent
+        # Add logging configuration to the package
+        echo "Creating deployment package with enhanced logging..."
         tar -czf ../agent-deployment.tar.gz .
         
     - name: Upload deployment artifact
@@ -94,48 +96,219 @@ jobs:
 
     - name: Copy deployment package to S3
       run: |
+        echo "Uploading deployment package to S3..."
         aws s3 cp agent-deployment.tar.gz s3://${{ secrets.S3_DEPLOYMENT_BUCKET }}/deployments/agent-deployment-${{ github.sha }}.tar.gz
+        echo "✅ Deployment package uploaded successfully"
 
-    - name: Deploy to EC2
+    - name: Deploy to EC2 via SSM (Secure)
       run: |
-        aws ssm send-command \
+        echo "🚀 Starting secure deployment to EC2..."
+        
+        COMMAND_ID=$(aws ssm send-command \
           --document-name "AWS-RunShellScript" \
           --parameters 'commands=[
             "#!/bin/bash",
             "set -e",
-            "echo \"Starting deployment at $(date)\"",
-            "cd /opt/agent",
+            "",
+            "# Deployment logging",
+            "DEPLOY_LOG=\"/opt/agent/logs/deployment.log\"",
+            "mkdir -p /opt/agent/logs",
+            "echo \"[$(date)] 🚀 GitHub Actions deployment started - Commit: ${{ github.sha }}\" | tee -a $DEPLOY_LOG",
+            "",
+            "# Download deployment package securely",
+            "echo \"[$(date)] 📦 Downloading deployment package...\" | tee -a $DEPLOY_LOG",
+            "aws s3 cp s3://${{ secrets.S3_DEPLOYMENT_BUCKET }}/deployments/agent-deployment-${{ github.sha }}.tar.gz /tmp/agent-deployment.tar.gz",
+            "",
+            "# Verify download",
+            "if [ ! -f \"/tmp/agent-deployment.tar.gz\" ]; then",
+            "  echo \"[$(date)] ❌ ERROR: Deployment package not found\" | tee -a $DEPLOY_LOG",
+            "  exit 1",
+            "fi",
+            "",
+            "# Stop service gracefully",
+            "echo \"[$(date)] 🛑 Stopping agent service...\" | tee -a $DEPLOY_LOG",
             "sudo systemctl stop agent-service || true",
-            "aws s3 cp s3://${{ secrets.S3_DEPLOYMENT_BUCKET }}/deployments/agent-deployment-${{ github.sha }}.tar.gz /tmp/",
-            "sudo rm -rf /opt/agent/current/*",
-            "sudo tar -xzf /tmp/agent-deployment-${{ github.sha }}.tar.gz -C /opt/agent/current/",
-            "sudo chown -R agent:agent /opt/agent/current/",
+            "sleep 5",
+            "",
+            "# Backup current deployment",
+            "if [ -d \"/opt/agent/current\" ] && [ \"$(ls -A /opt/agent/current)\" ]; then",
+            "  BACKUP_DIR=\"/opt/agent/releases/backup-$(date +%Y%m%d-%H%M%S)\"",
+            "  echo \"[$(date)] 💾 Backing up current deployment to $BACKUP_DIR\" | tee -a $DEPLOY_LOG",
+            "  sudo mkdir -p /opt/agent/releases",
+            "  sudo mv /opt/agent/current $BACKUP_DIR",
+            "fi",
+            "",
+            "# Create fresh deployment directory",
+            "sudo mkdir -p /opt/agent/current",
             "cd /opt/agent/current",
-            "sudo -u agent python -m venv venv",
+            "",
+            "# Extract new deployment",
+            "echo \"[$(date)] 📂 Extracting deployment package...\" | tee -a $DEPLOY_LOG",
+            "sudo tar -xzf /tmp/agent-deployment.tar.gz -C /opt/agent/current/",
+            "",
+            "# Set proper ownership",
+            "sudo chown -R agent:agent /opt/agent/current/",
+            "sudo chown -R agent:agent /opt/agent/logs/",
+            "",
+            "# Setup Python environment",
+            "echo \"[$(date)] 🐍 Setting up Python environment...\" | tee -a $DEPLOY_LOG",
+            "sudo -u agent python3 -m venv venv",
             "sudo -u agent ./venv/bin/pip install --upgrade pip",
             "sudo -u agent ./venv/bin/pip install -r requirements.txt",
+            "",
+            "# Ensure log directory exists and has proper permissions",
+            "sudo mkdir -p /opt/agent/logs",
+            "sudo chown -R agent:agent /opt/agent/logs",
+            "sudo chmod 755 /opt/agent/logs",
+            "",
+            "# Start service",
+            "echo \"[$(date)] 🚀 Starting agent service...\" | tee -a $DEPLOY_LOG",
+            "sudo systemctl daemon-reload",
             "sudo systemctl start agent-service",
             "sudo systemctl enable agent-service",
-            "sleep 10",
-            "curl -f http://localhost:8000/docs || (echo \"Health check failed\" && exit 1)",
-            "echo \"Deployment completed successfully at $(date)\""
+            "",
+            "# Wait for service to start",
+            "echo \"[$(date)] ⏳ Waiting for service to start...\" | tee -a $DEPLOY_LOG",
+            "sleep 15",
+            "",
+            "# Health check",
+            "echo \"[$(date)] 🏥 Performing health check...\" | tee -a $DEPLOY_LOG",
+            "for i in {1..5}; do",
+            "  if curl -f -s http://localhost:8000/ > /dev/null; then",
+            "    echo \"[$(date)] ✅ Health check passed (attempt $i)\" | tee -a $DEPLOY_LOG",
+            "    break",
+            "  else",
+            "    echo \"[$(date)] ⚠️  Health check failed (attempt $i), retrying...\" | tee -a $DEPLOY_LOG",
+            "    sleep 10",
+            "  fi",
+            "  if [ $i -eq 5 ]; then",
+            "    echo \"[$(date)] ❌ Health check failed after 5 attempts\" | tee -a $DEPLOY_LOG",
+            "    sudo systemctl status agent-service | tee -a $DEPLOY_LOG",
+            "    exit 1",
+            "  fi",
+            "done",
+            "",
+            "# Verify logging is working",
+            "echo \"[$(date)] 📝 Verifying logging configuration...\" | tee -a $DEPLOY_LOG",
+            "if [ -f \"/opt/agent/logs/agent.log\" ]; then",
+            "  echo \"[$(date)] ✅ Agent log file exists: /opt/agent/logs/agent.log\" | tee -a $DEPLOY_LOG",
+            "  echo \"[$(date)] 📊 Log file size: $(du -h /opt/agent/logs/agent.log | cut -f1)\" | tee -a $DEPLOY_LOG",
+            "else",
+            "  echo \"[$(date)] ⚠️  Agent log file not found, creating...\" | tee -a $DEPLOY_LOG",
+            "  sudo touch /opt/agent/logs/agent.log",
+            "  sudo chown agent:agent /opt/agent/logs/agent.log",
+            "fi",
+            "",
+            "# Clean up old backups (keep last 5)",
+            "echo \"[$(date)] 🧹 Cleaning up old backups...\" | tee -a $DEPLOY_LOG",
+            "sudo find /opt/agent/releases -name \"backup-*\" -type d | sort | head -n -5 | xargs sudo rm -rf 2>/dev/null || true",
+            "",
+            "# Clean up deployment file",
+            "rm -f /tmp/agent-deployment.tar.gz",
+            "",
+            "echo \"[$(date)] 🎉 Deployment completed successfully!\" | tee -a $DEPLOY_LOG",
+            "echo \"[$(date)] 📍 Application URL: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)/\" | tee -a $DEPLOY_LOG",
+            "echo \"[$(date)] 📋 Service status: $(sudo systemctl is-active agent-service)\" | tee -a $DEPLOY_LOG",
+            "echo \"[$(date)] 📝 Logs location: /opt/agent/logs/agent.log\" | tee -a $DEPLOY_LOG"
           ]' \
           --targets "Key=tag:Environment,Values=${{ secrets.ENVIRONMENT }}" \
-          --cloud-watch-output-config CloudWatchOutputEnabled=true,CloudWatchLogGroupName=/aws/ssm/deployment-logs
+          --cloud-watch-output-config CloudWatchOutputEnabled=true,CloudWatchLogGroupName=/aws/ssm/deployment-logs \
+          --query 'Command.CommandId' --output text)
+        
+        echo "📋 SSM Command ID: $COMMAND_ID"
+        echo "COMMAND_ID=$COMMAND_ID" >> $GITHUB_ENV
+
+    - name: Wait for deployment completion
+      run: |
+        echo "⏳ Waiting for deployment to complete..."
+        
+        # Wait for command to complete (max 10 minutes)
+        for i in {1..60}; do
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id $COMMAND_ID \
+            --instance-id ${{ secrets.EC2_INSTANCE_ID }} \
+            --query 'Status' --output text 2>/dev/null || echo "InProgress")
+          
+          echo "Deployment status: $STATUS (check $i/60)"
+          
+          if [ "$STATUS" = "Success" ]; then
+            echo "✅ Deployment completed successfully!"
+            break
+          elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ] || [ "$STATUS" = "TimedOut" ]; then
+            echo "❌ Deployment failed with status: $STATUS"
+            
+            # Get error details
+            echo "📋 Error details:"
+            aws ssm get-command-invocation \
+              --command-id $COMMAND_ID \
+              --instance-id ${{ secrets.EC2_INSTANCE_ID }} \
+              --query 'StandardErrorContent' --output text
+            
+            exit 1
+          fi
+          
+          sleep 10
+        done
+        
+        # Final status check
+        FINAL_STATUS=$(aws ssm get-command-invocation \
+          --command-id $COMMAND_ID \
+          --instance-id ${{ secrets.EC2_INSTANCE_ID }} \
+          --query 'Status' --output text)
+        
+        if [ "$FINAL_STATUS" != "Success" ]; then
+          echo "❌ Deployment timed out or failed. Final status: $FINAL_STATUS"
+          exit 1
+        fi
 
     - name: Verify deployment
       run: |
-        sleep 30
-        COMMAND_ID=$(aws ssm list-commands --max-items 1 --query 'Commands[0].CommandId' --output text)
-        STATUS=$(aws ssm get-command-invocation --command-id $COMMAND_ID --instance-id ${{ secrets.EC2_INSTANCE_ID }} --query 'Status' --output text)
+        echo "🔍 Verifying deployment..."
         
-        if [ "$STATUS" != "Success" ]; then
-          echo "Deployment failed with status: $STATUS"
-          aws ssm get-command-invocation --command-id $COMMAND_ID --instance-id ${{ secrets.EC2_INSTANCE_ID }} --query 'StandardErrorContent' --output text
+        # Get instance public IP
+        INSTANCE_IP=$(aws ec2 describe-instances \
+          --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        
+        echo "🌐 Instance IP: $INSTANCE_IP"
+        
+        # Wait a bit more for the service to be fully ready
+        sleep 30
+        
+        # Test the application endpoints
+        echo "🧪 Testing application endpoints..."
+        
+        # Test root endpoint
+        if curl -f -s "http://$INSTANCE_IP/" > /dev/null; then
+          echo "✅ Root endpoint is responding"
+        else
+          echo "❌ Root endpoint test failed"
           exit 1
         fi
         
-        echo "Deployment verified successfully"
+        # Test version endpoint (if exists)
+        if curl -f -s "http://$INSTANCE_IP/version" > /dev/null; then
+          echo "✅ Version endpoint is responding"
+          VERSION_INFO=$(curl -s "http://$INSTANCE_IP/version")
+          echo "📋 Version info: $VERSION_INFO"
+        else
+          echo "ℹ️  Version endpoint not available (this is okay)"
+        fi
+        
+        # Test recommendation endpoint
+        if curl -f -s -X POST "http://$INSTANCE_IP/recommendation" \
+             -H "Content-Type: application/json" \
+             -d '{"input_text": "test deployment"}' > /dev/null; then
+          echo "✅ Recommendation endpoint is responding"
+        else
+          echo "❌ Recommendation endpoint test failed"
+          exit 1
+        fi
+        
+        echo "🎉 All endpoint tests passed!"
+        echo "🌐 Application is live at: http://$INSTANCE_IP/"
+        echo "📚 API docs available at: http://$INSTANCE_IP/docs"
 
   notify:
     needs: [deploy]
@@ -146,7 +319,17 @@ jobs:
     - name: Notify deployment status
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "✅ Deployment successful for commit ${{ github.sha }}"
+          echo "🎉 ✅ Deployment successful for commit ${{ github.sha }}"
+          echo "📋 Summary:"
+          echo "   - Agent code updated and deployed"
+          echo "   - Service restarted successfully"
+          echo "   - Health checks passed"
+          echo "   - Logs configured to save to /opt/agent/logs/agent.log"
+          echo "   - Application is running persistently"
         else
-          echo "❌ Deployment failed for commit ${{ github.sha }}"
+          echo "💥 ❌ Deployment failed for commit ${{ github.sha }}"
+          echo "📋 Please check:"
+          echo "   - GitHub Actions logs"
+          echo "   - AWS SSM command execution logs"
+          echo "   - EC2 instance system logs"
         fi
