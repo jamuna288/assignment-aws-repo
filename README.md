@@ -1,20 +1,24 @@
 # 🚀 Agent CI/CD Pipeline
 
-**Automated CI/CD pipeline for deploying agents from GitHub to AWS EC2 with enterprise-grade security and monitoring.**
+**Automated CI/CD pipeline for deploying agents from GitHub to AWS EC2 with enterprise-grade security, monitoring, rollback capabilities, and comprehensive notifications.**
 
 [![Deploy Status](https://img.shields.io/badge/deploy-success-brightgreen)](http://54.221.105.106)
 [![Infrastructure](https://img.shields.io/badge/infrastructure-terraform-blue)](./terraform/)
 [![Security](https://img.shields.io/badge/security-hardened-green)](./scripts/security-setup.sh)
 [![Monitoring](https://img.shields.io/badge/monitoring-cloudwatch-orange)](https://console.aws.amazon.com/cloudwatch/)
+[![CI/CD](https://img.shields.io/badge/cicd-enhanced-purple)](./.github/workflows/deploy-enhanced.yml)
 
 ## 📋 Table of Contents
 
 - [🎯 Overview](#-overview)
+- [🆕 Enhanced CI/CD Features](#-enhanced-cicd-features)
 - [🏗️ Architecture](#️-architecture)
 - [🚀 Quick Start](#-quick-start)
 - [📁 Project Structure](#-project-structure)
 - [🔧 Local Development](#-local-development)
 - [🚀 Deployment Options](#-deployment-options)
+- [🔄 Rollback & Recovery](#-rollback--recovery)
+- [📢 Notifications](#-notifications)
 - [🔒 Security Features](#-security-features)
 - [📊 Monitoring & Logging](#-monitoring--logging)
 - [🧪 Testing](#-testing)
@@ -29,7 +33,8 @@
 This project provides a complete CI/CD pipeline solution for deploying intelligent agents to AWS infrastructure. It includes:
 
 - **Automated Infrastructure**: Terraform-managed AWS resources
-- **Secure Deployments**: GitHub Actions with AWS SSM
+- **Enhanced CI/CD**: GitHub Actions with rollback, versioning, and notifications
+- **Secure Deployments**: AWS SSM deployment (no SSH keys needed)
 - **Production Ready**: Load balancing, monitoring, and logging
 - **Security First**: IAM roles, encrypted storage, network security
 - **Scalable Architecture**: Ready for horizontal scaling
@@ -37,13 +42,48 @@ This project provides a complete CI/CD pipeline solution for deploying intellige
 ### 🌟 Key Features
 
 - ✅ **One-command deployment** with Terraform
-- ✅ **GitHub Actions CI/CD** with automated testing
+- ✅ **Enhanced GitHub Actions CI/CD** with automatic rollback
 - ✅ **Zero-downtime deployments** via AWS SSM
+- ✅ **Automatic rollback** on deployment failure
+- ✅ **Versioning and tagging** system
+- ✅ **Multi-channel notifications** (Slack, Email, Teams)
 - ✅ **Enterprise security** with least-privilege IAM
 - ✅ **Comprehensive monitoring** with CloudWatch
 - ✅ **Load balancing** with Application Load Balancer
 - ✅ **Automated testing** and health checks
 - ✅ **Docker support** for local development
+
+## 🆕 Enhanced CI/CD Features
+
+### 🔄 Automatic Rollback System
+- **Smart Rollback**: Automatically rolls back to previous version on deployment failure
+- **Health Checks**: Comprehensive verification before marking deployment as successful
+- **Backup Management**: Maintains deployment history with automatic cleanup
+- **Manual Rollback**: GitHub Actions workflow for manual rollbacks
+
+### 🏷️ Versioning & Tagging
+- **Semantic Versioning**: Automatic version generation based on date and commit
+- **Git Integration**: Version tags linked to Git commits
+- **Deployment Tracking**: Full deployment history with version information
+- **Rollback Targeting**: Rollback to specific versions
+
+### 📢 Multi-Channel Notifications
+- **Slack Integration**: Rich notifications with deployment details
+- **Email Notifications**: Via webhook services (Zapier, IFTTT)
+- **Teams Integration**: Microsoft Teams notifications
+- **Status Updates**: Real-time deployment progress notifications
+
+### 🔐 Enhanced Security
+- **No SSH Keys**: Uses AWS SSM for secure deployment
+- **Least Privilege**: Minimal IAM permissions
+- **Encrypted Storage**: All artifacts encrypted in S3
+- **Audit Logging**: Complete deployment audit trail
+
+### 📊 Advanced Monitoring
+- **Deployment Metrics**: Track deployment success/failure rates
+- **Performance Monitoring**: Application performance metrics
+- **Log Aggregation**: Centralized logging with CloudWatch
+- **Health Dashboards**: Real-time health monitoring
 
 ## 🏗️ Architecture
 
@@ -90,15 +130,30 @@ graph TB
 - AWS CLI installed and configured
 - Terraform >= 1.0
 - Git repository access
-- EC2 Key Pair in your target region
+- GitHub CLI (for enhanced features)
 
-### Option 1: Terraform Deployment (Recommended)
+### Option 1: Enhanced CI/CD Setup (Recommended)
 
 ```bash
 # Clone the repository
 git clone <your-repo-url>
 cd assignment-aws-repo
 
+# Run the enhanced setup script
+./setup-enhanced-cicd.sh
+```
+
+**What this does:**
+- 🔐 Sets up all GitHub Secrets securely
+- 🚀 Configures enhanced CI/CD pipeline
+- 📢 Sets up notification channels
+- 🔄 Enables automatic rollback system
+- 📋 Creates comprehensive documentation
+- ✅ Validates entire configuration
+
+### Option 2: Terraform Deployment
+
+```bash
 # Deploy infrastructure
 cd terraform
 ./setup-terraform.sh
@@ -111,16 +166,110 @@ cd terraform
 - 📝 Generates GitHub secrets template
 - ✅ Tests the deployment
 
-### Option 2: CloudFormation Deployment
-
-```bash
-# Deploy using CloudFormation
-./setup.sh
-```
-
 ### Option 3: Manual Setup
 
 Follow the comprehensive [Deployment Guide](DEPLOYMENT_GUIDE.md) for step-by-step instructions.
+
+## 🔄 Rollback & Recovery
+
+### Automatic Rollback
+The enhanced CI/CD pipeline includes automatic rollback capabilities:
+
+- **Failed Deployment Detection**: Monitors health checks during deployment
+- **Automatic Recovery**: Rolls back to previous version if deployment fails
+- **Health Verification**: Ensures rollback was successful
+- **Notification**: Alerts team about rollback events
+
+### Manual Rollback Options
+
+#### 1. GitHub Actions Rollback (Recommended)
+```bash
+# Rollback to specific version
+gh workflow run deploy-enhanced.yml -f action=rollback -f version=v2024.01.15-abc123
+
+# Rollback to latest backup
+gh workflow run deploy-enhanced.yml -f action=rollback
+```
+
+#### 2. Local Rollback Manager
+```bash
+# List available backups
+./scripts/rollback-manager.sh list
+
+# Rollback to specific version
+./scripts/rollback-manager.sh rollback v2024.01.15-abc123
+
+# Rollback to latest backup
+./scripts/rollback-manager.sh rollback
+
+# Check current deployment status
+./scripts/rollback-manager.sh status
+
+# Verify deployment health
+./scripts/rollback-manager.sh verify
+```
+
+#### 3. Emergency Rollback
+```bash
+# Force rollback without confirmation
+./scripts/rollback-manager.sh rollback --force
+
+# Dry run to see what would happen
+./scripts/rollback-manager.sh rollback --dry-run
+```
+
+### Rollback Features
+- **Version Tracking**: All deployments are versioned and tagged
+- **Backup Management**: Automatic backup creation before each deployment
+- **Health Checks**: Comprehensive verification after rollback
+- **Audit Trail**: Complete logging of all rollback operations
+- **Cleanup**: Automatic cleanup of old backups (keeps last 10)
+
+## 📢 Notifications
+
+### Supported Channels
+- **Slack**: Rich notifications with deployment details
+- **Email**: Via webhook services (Zapier, IFTTT, etc.)
+- **Microsoft Teams**: Native Teams integration
+- **Custom Webhooks**: Support for any webhook-based service
+
+### Notification Events
+- 🚀 **Deployment Started**: When deployment begins
+- ✅ **Deployment Success**: When deployment completes successfully
+- ❌ **Deployment Failed**: When deployment fails (with error details)
+- 🔄 **Rollback Triggered**: When automatic rollback occurs
+- 📋 **Manual Rollback**: When manual rollback is performed
+
+### Setup Notifications
+```bash
+# Interactive setup for all notification channels
+./scripts/setup-notifications.sh
+
+# Test all configured notifications
+./test-notifications.sh
+```
+
+### Notification Configuration
+Add these secrets to GitHub for notifications:
+- `SLACK_WEBHOOK_URL`: Slack webhook URL
+- `EMAIL_WEBHOOK_URL`: Email service webhook URL
+- `TEAMS_WEBHOOK_URL`: Microsoft Teams webhook URL
+
+### Sample Notification Content
+```json
+{
+  "text": "✅ Deployment Successful!",
+  "attachments": [{
+    "color": "good",
+    "fields": [
+      {"title": "Version", "value": "v2024.01.15-abc123", "short": true},
+      {"title": "Environment", "value": "Production", "short": true},
+      {"title": "Commit", "value": "abc123", "short": true},
+      {"title": "URL", "value": "http://your-app.com", "short": false}
+    ]
+  }]
+}
+```
 
 ## 📁 Project Structure
 
