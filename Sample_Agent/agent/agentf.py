@@ -1,8 +1,9 @@
 
 def run_agent(input_text):
     """
-    Simple agent function that provides flight delay recommendations
-    without requiring external APIs for demonstration purposes.
+    Enhanced agent function that provides intelligent flight recommendations
+    with improved response handling and auto-deployment testing.
+    Version: 2.0 - Auto-deployment test
     """
     
     # Simple rule-based responses for demonstration
