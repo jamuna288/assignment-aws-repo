@@ -14,6 +14,7 @@ name: Deploy Agent to EC2 (DISABLED - Using Enhanced Workflow)
 # Manual trigger only for testing
 on:
   workflow_dispatch:
+  workflow_dispatch:
       - 'Sample_Agent/**'
 
 env:
