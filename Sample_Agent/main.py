@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Flight Agent API",
-    description="Intelligent flight assistance agent with automated CI/CD deployment and comprehensive logging",
-    version="2.0"
+    description="Intelligent flight assistance agent with automated CI/CD deployment and comprehensive logging - Workflow Test v2.1",
+    version="2.1"
 )
 
 app.add_middleware(
@@ -59,10 +59,11 @@ async def shutdown_event():
 async def root():
     logger.info("📍 Root endpoint accessed")
     return {
-        "message": "Flight Agent API is running", 
-        "version": "2.0",
+        "message": "🚀 Flight Agent API is running smoothly - CI/CD Test v2.1", 
+        "version": "2.1",
         "deployment_time": datetime.datetime.now().isoformat(),
         "status": "active",
+        "test_deployment": "✅ Workflow test successful!",
         "logging": {
             "enabled": True,
             "location": f"{log_dir}/agent.log"
@@ -73,10 +74,11 @@ async def root():
 async def get_version():
     logger.info("📋 Version endpoint accessed")
     return {
-        "version": "2.0",
+        "version": "2.1",
         "deployment_time": datetime.datetime.now().isoformat(),
         "auto_deployment": "enabled",
-        "last_update": "Agent code modified for auto-deployment test",
+        "last_update": "CI/CD workflow test - updated response messages",
+        "test_status": "✅ GitHub Actions workflow validation",
         "logging": {
             "enabled": True,
             "location": f"{log_dir}/agent.log"
@@ -90,7 +92,8 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.datetime.now().isoformat(),
         "service": "flight-agent",
-        "version": "2.0"
+        "version": "2.1",
+        "test_deployment": "✅ CI/CD workflow validation"
     }
 
 @app.get("/logs/status")

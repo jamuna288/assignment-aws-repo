@@ -27,7 +27,7 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('Sample_Agent/requirements.txt') }}
@@ -70,7 +70,7 @@ jobs:
         tar -czf ../agent-deployment.tar.gz .
         
     - name: Upload deployment artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: agent-deployment
         path: agent-deployment.tar.gz
@@ -83,7 +83,7 @@ jobs:
     
     steps:
     - name: Download deployment artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: agent-deployment
 
