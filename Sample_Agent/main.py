@@ -48,6 +48,7 @@ async def startup_event():
     logger.info("🚀 Flight Agent API starting up...")
     logger.info(f"📝 Logging configured to save to: {log_dir}/agent.log")
     logger.info(f"🕐 Startup time: {datetime.datetime.now().isoformat()}")
+    logger.info("🔄 Workflow rerun test - fixing AWS region issue")
 
 @app.on_event("shutdown")
 async def shutdown_event():
