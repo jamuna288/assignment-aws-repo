@@ -1,14 +1,18 @@
-name: Enhanced Agent Deployment with Rollback & Notifications
+name: Enhanced Agent Deployment with Rollback & Notifications (DISABLED)
 
+# Disabled in favor of basic deploy.yml workflow
+# on:
+#   push:
+#     branches: [ main, develop ]
+#     paths:
+#       - 'Sample_Agent/**'
+#   pull_request:
+#     branches: [ main ]
+#     paths:
+#       - 'Sample_Agent/**'
+
+# Manual trigger only for testing
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'Sample_Agent/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'Sample_Agent/**'
   workflow_dispatch:
     inputs:
       action:
