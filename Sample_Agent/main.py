@@ -50,6 +50,7 @@ async def startup_event():
     logger.info(f"🕐 Startup time: {datetime.datetime.now().isoformat()}")
     logger.info("🔄 Workflow rerun test - fixing AWS region issue")
     logger.info("🔐 All GitHub secrets configured - testing full deployment")
+    logger.info("🎯 Testing enhanced workflow only - basic workflow disabled")
 
 @app.on_event("shutdown")
 async def shutdown_event():
