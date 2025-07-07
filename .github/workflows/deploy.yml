@@ -1,13 +1,19 @@
-name: Deploy Agent to EC2
+name: Deploy Agent to EC2 (DISABLED - Using Enhanced Workflow)
 
+# Disabled in favor of deploy-enhanced.yml
+# on:
+#   push:
+#     branches: [ main, develop ]
+#     paths:
+#       - 'Sample_Agent/**'
+#   pull_request:
+#     branches: [ main ]
+#     paths:
+#       - 'Sample_Agent/**'
+
+# Manual trigger only for testing
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'Sample_Agent/**'
-  pull_request:
-    branches: [ main ]
-    paths:
+  workflow_dispatch:
       - 'Sample_Agent/**'
 
 env:
