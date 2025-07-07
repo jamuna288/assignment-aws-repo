@@ -7,6 +7,7 @@ from agent.agentf import run_agent
 from fastapi.middleware.cors import CORSMiddleware
 import datetime
 
+# Basic workflow test - fixed deployment issue and re-enabled basic workflow
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Configure logging to save to logs/agent.log as requested
